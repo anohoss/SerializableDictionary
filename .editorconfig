@@ -1,0 +1,132 @@
+########## .editorconfig for Unity ##########
+root = true
+
+##### All files #####
+
+[*]
+indent_style = space
+end_of_line = lf
+
+
+
+##### Code files #####
+
+[*.cs]
+
+# レイアウト規則
+
+indent_size = 4
+insert_final_newline = true
+charset = utf-8
+trim_trailing_whitespace = true
+
+# 命名規則
+
+# 名前付けルール
+# Interfaces need prefix "I".
+dotnet_naming_rule.interface_should_begin_with_i.severity = warning
+dotnet_naming_rule.interface_should_begin_with_i.symbols = interface
+dotnet_naming_rule.interface_should_begin_with_i.style = begins_with_i
+
+# Types should be pascal case.
+dotnet_naming_rule.type_should_be_pascal_case.severity = warning
+dotnet_naming_rule.type_should_be_pascal_case.symbols = type
+dotnet_naming_rule.type_should_be_pascal_case.style = pascal_case
+
+# Properties, Events, Methods should be pascal case.
+dotnet_naming_rule.non_field_member_should_be_pascal_case.severity = warning
+dotnet_naming_rule.non_field_member_should_be_pascal_case.symbols = non_field_member
+dotnet_naming_rule.non_field_member_should_be_pascal_case.style = pascal_case
+
+# Public or Protected Fields should be pascal case.
+dotnet_naming_rule.public_or_protected_field_should_be_pascal_case.severity = warning
+dotnet_naming_rule.public_or_protected_field_should_be_pascal_case.symbols = public_or_protected_field
+dotnet_naming_rule.public_or_protected_field_should_be_pascal_case.style = pascal_case
+
+# Private or Internal and Static Fields need prefix "s_".
+dotnet_naming_rule.static_private_or_internal_field_should_begin_with_s_.severity = warning
+dotnet_naming_rule.static_private_or_internal_field_should_begin_with_s_.symbols = static_private_or_internal_field
+dotnet_naming_rule.static_private_or_internal_field_should_begin_with_s_.style = begin_with_s_
+
+# Private or Internal Fields need prefix "_".
+dotnet_naming_rule.private_or_internal_field_should_begin_with__.severity = warning
+dotnet_naming_rule.private_or_internal_field_should_begin_with__.symbols = private_or_internal_field
+dotnet_naming_rule.private_or_internal_field_should_begin_with__.style = begin_with__
+
+# Constant Fields should be screaming scake case.
+dotnet_naming_rule.constant_field_should_be_screaming_snake_case.severity = warning
+dotnet_naming_rule.constant_field_should_be_screaming_snake_case.symbols = constant_field
+dotnet_naming_rule.constant_field_should_be_screaming_snake_case.style = screaming_snake_case
+
+# Arguments 
+dotnet_naming_rule.argument_should_be_camel_case.severity = warning
+dotnet_naming_rule.argument_should_be_camel_case.symbols = argument
+dotnet_naming_rule.argument_should_be_camel_case.style = camel_case
+
+
+
+# 記号の仕様
+dotnet_naming_symbols.interface.applicable_kinds = interface
+dotnet_naming_symbols.interface.applicable_accessibilities = public, internal, private, protected, protected_internal, private_protected
+dotnet_naming_symbols.interface.required_modifiers = 
+
+dotnet_naming_symbols.public_or_protected_field.applicable_kinds = field
+dotnet_naming_symbols.public_or_protected_field.applicable_accessibilities = public, protected
+dotnet_naming_symbols.public_or_protected_field.required_modifiers = 
+
+dotnet_naming_symbols.static_private_or_internal_field.applicable_kinds = field
+dotnet_naming_symbols.static_private_or_internal_field.applicable_accessibilities = internal, private, private_protected
+dotnet_naming_symbols.static_private_or_internal_field.required_modifiers = static
+
+dotnet_naming_symbols.private_or_internal_field.applicable_kinds = field
+dotnet_naming_symbols.private_or_internal_field.applicable_accessibilities = internal, private, private_protected
+dotnet_naming_symbols.private_or_internal_field.required_modifiers = 
+
+dotnet_naming_symbols.type.applicable_kinds = class, struct, enum, delegate
+dotnet_naming_symbols.type.applicable_accessibilities = public, internal, private, protected, protected_internal, private_protected
+dotnet_naming_symbols.type.required_modifiers = 
+
+dotnet_naming_symbols.non_field_member.applicable_kinds = property, event, method
+dotnet_naming_symbols.non_field_member.applicable_accessibilities = public, internal, private, protected, protected_internal, private_protected
+dotnet_naming_symbols.non_field_member.required_modifiers = 
+
+dotnet_naming_symbols.constant_field.applicable_kinds = field
+dotnet_naming_symbols.constant_field.applicable_accessibilities = *
+dotnet_naming_symbols.constant_field.required_modifiers = const
+
+dotnet_naming_symbols.argument.applicable_kinds = argument
+dotnet_naming_symbols.argument.applicable_accessibilities = public, internal, private, protected, protected_internal, private_protected
+dotnet_naming_symbols.argument.required_modifiers = 
+
+
+
+# 命名スタイル
+dotnet_naming_style.pascal_case.required_prefix = 
+dotnet_naming_style.pascal_case.required_suffix = 
+dotnet_naming_style.pascal_case.word_separator = 
+dotnet_naming_style.pascal_case.capitalization = pascal_case
+
+dotnet_naming_style.begins_with_i.required_prefix = I
+dotnet_naming_style.begins_with_i.required_suffix = 
+dotnet_naming_style.begins_with_i.word_separator = 
+dotnet_naming_style.begins_with_i.capitalization = pascal_case
+
+dotnet_naming_style.begin_with_s_.required_prefix = s_
+dotnet_naming_style.begin_with_s_.required_suffix = 
+dotnet_naming_style.begin_with_s_.word_separator = 
+dotnet_naming_style.begin_with_s_.capitalization = camel_case
+
+dotnet_naming_style.begin_with__.required_prefix = _
+dotnet_naming_style.begin_with__.required_suffix = 
+dotnet_naming_style.begin_with__.word_separator = 
+dotnet_naming_style.begin_with__.capitalization = camel_case
+
+dotnet_naming_style.screaming_snake_case.required_prefix = 
+dotnet_naming_style.screaming_snake_case.required_suffix = 
+dotnet_naming_style.screaming_snake_case.word_separator = _
+dotnet_naming_style.screaming_snake_case.capitalization = all_upper
+
+dotnet_naming_style.camel_case.required_prefix = 
+dotnet_naming_style.camel_case.required_suffix = 
+dotnet_naming_style.camel_case.word_separator = 
+dotnet_naming_style.camel_case.capitalization = camel_case
