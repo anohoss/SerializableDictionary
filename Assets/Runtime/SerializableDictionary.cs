@@ -3,14 +3,18 @@ using System.Collections;
 using System.Collections.Generic;
 
 [Serializable]
-public class SerializableDictionary<TKey, TValue> : IDictionary<TKey, TValue>, IDictionary, IReadOnlyDictionary<TKey, TValue>
+public partial class SerializableDictionary<TKey, TValue> : IDictionary<TKey, TValue>, IDictionary, IReadOnlyDictionary<TKey, TValue>
 {
     Dictionary<TKey, TValue> _dictionary;
 
     public TValue this[TKey key]
     {
         get => _dictionary[key];
-        set => _dictionary[key] = value;
+        set
+        {
+            _dictionary[key] = value;
+            UpdateSerializedProperty();
+        }
     }
 
     public IEqualityComparer<TKey> Comparer => _dictionary.Comparer;
@@ -23,7 +27,11 @@ public class SerializableDictionary<TKey, TValue> : IDictionary<TKey, TValue>, I
     object IDictionary.this[object key]
     {
         get => (_dictionary as IDictionary)[key];
-        set => (_dictionary as IDictionary)[key] = value;
+        set
+        {
+            (_dictionary as IDictionary)[key] = value;
+            UpdateSerializedProperty();
+        }
     }
 
     public int Count => _dictionary.Count;
@@ -52,14 +60,41 @@ public class SerializableDictionary<TKey, TValue> : IDictionary<TKey, TValue>, I
 
 
 
+    public SerializableDictionary() : this(new Dictionary<TKey, TValue>(), null) { }
+
+
+    public SerializableDictionary(IEqualityComparer<TKey> comparer) : this(new Dictionary<TKey, TValue>(), comparer) { }
+
+
+
+    public SerializableDictionary(IDictionary<TKey, TValue> dictionary) : this(dictionary, null) { }
+
+
+
+    public SerializableDictionary(IDictionary<TKey, TValue> dictionary, IEqualityComparer<TKey> comparer)
+    {
+        if (dictionary == null)
+        {
+            throw new ArgumentNullException(nameof(dictionary));
+        }
+
+        _dictionary = new Dictionary<TKey, TValue>(dictionary, comparer);
+
+        InitSerializedProperty();
+    }
+
+
+
     public void Add(TKey key, TValue value)
     {
         _dictionary.Add(key, value);
+        UpdateSerializedProperty();
     }
 
     public void Clear()
     {
         _dictionary.Clear();
+        UpdateSerializedProperty();
     }
 
     public bool ContainsKey(TKey key)
@@ -84,17 +119,25 @@ public class SerializableDictionary<TKey, TValue> : IDictionary<TKey, TValue>, I
 
     public bool Remove(TKey key)
     {
-        return _dictionary.Remove(key);
+        if (_dictionary.Remove(key))
+        {
+            UpdateSerializedProperty();
+            return true;
+        }
+
+        return false;
     }
 
     void ICollection<KeyValuePair<TKey, TValue>>.Add(KeyValuePair<TKey, TValue> item)
     {
         (_dictionary as ICollection<KeyValuePair<TKey, TValue>>).Add(item);
+        UpdateSerializedProperty();
     }
 
     void IDictionary.Add(object key, object value)
     {
         (_dictionary as IDictionary).Add(key, value);
+        UpdateSerializedProperty();
     }
 
     bool ICollection<KeyValuePair<TKey, TValue>>.Contains(KeyValuePair<TKey, TValue> item)
@@ -134,11 +177,18 @@ public class SerializableDictionary<TKey, TValue> : IDictionary<TKey, TValue>, I
 
     bool ICollection<KeyValuePair<TKey, TValue>>.Remove(KeyValuePair<TKey, TValue> item)
     {
-        return (_dictionary as ICollection<KeyValuePair<TKey, TValue>>).Remove(item);
+        if((_dictionary as ICollection<KeyValuePair<TKey, TValue>>).Remove(item))
+        {
+            UpdateSerializedProperty();
+            return true;
+        }
+
+        return false;
     }
 
     void IDictionary.Remove(object key)
     {
         (_dictionary as IDictionary).Remove(key);
+        UpdateSerializedProperty();
     }
 }
