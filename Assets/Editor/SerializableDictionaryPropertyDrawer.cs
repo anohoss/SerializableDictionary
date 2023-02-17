@@ -1,3 +1,4 @@
+using System;
 using UnityEditor;
 using UnityEditorInternal;
 using UnityEngine;
@@ -9,16 +10,34 @@ public class SerializableDictionaryPropertyDrawer : PropertyDrawer
     {
         private static class Constraints
         {
-            public const string PAIRS = "_pairs";
+            public const string PAIRS_FIELD_NAME = "_pairs";
 
-            public const string KEY = "Key";
+            public const string KEY_FIELD_NAME = "Key";
 
-            public const string VALUE = "Value";
+            public const string VALUE_FIELD_NAME = "Value";
         }
 
 
 
+        private readonly bool _isSerializable;
+
+        private readonly SerializedProperty _list;
+
         private readonly SerializedProperty _property;
+
+        public int Count
+        {
+            get
+            {
+                return _list.arraySize;
+            }
+        }
+
+        public bool IsSerializable => _isSerializable;
+
+        public SerializedProperty List => _list;
+
+        public SerializedProperty Property => _property;
 
         public SerializedObject SerializedObject => _property?.serializedObject;
 
@@ -26,14 +45,32 @@ public class SerializableDictionaryPropertyDrawer : PropertyDrawer
 
         public SerializableDictionaryProperty(SerializedProperty property)
         {
+            if(property is null)
+            {
+                throw new ArgumentNullException(nameof(property));
+            }
+
             _property = property;
+            _list = property.FindPropertyRelative(Constraints.PAIRS_FIELD_NAME);
+
+            var targetObj = property.GetTargetObject();
+            for (var type = targetObj.GetType(); ;type = type.BaseType)
+            {
+                if(type.BaseType == typeof(object)) // type is SerializableDictionary' 2
+                {
+                    _isSerializable = type.GenericTypeArguments[0].IsUnitySerializable() && type.GenericTypeArguments[1].IsUnitySerializable();
+                    break;
+                }
+            }
         }
 
 
 
-        public SerializedProperty GetPairs()
+        public bool ContainsKey(SerializedProperty key)
         {
-            return _property.FindPropertyRelative(Constraints.PAIRS);
+            dynamic obj = _property.GetTargetObject();   // type is SerializableDictionary` 2 or its derivatives
+            dynamic keyObj = key.GetTargetObject();
+            return obj.ContainsKey(keyObj);
         }
 
 
@@ -43,9 +80,8 @@ public class SerializableDictionaryPropertyDrawer : PropertyDrawer
         /// </summary>
         public SerializedProperty GetKey(int index)
         {
-            var pairs = GetPairs();
-            var element = pairs.GetArrayElementAtIndex(index);
-            return element.FindPropertyRelative(Constraints.KEY);
+            var element = _list.GetArrayElementAtIndex(index);
+            return element?.FindPropertyRelative(Constraints.KEY_FIELD_NAME);
         }
 
 
@@ -55,16 +91,43 @@ public class SerializableDictionaryPropertyDrawer : PropertyDrawer
         /// </summary>
         public SerializedProperty GetValue(int index)
         {
-            var pairs = GetPairs();
-            var element = pairs.GetArrayElementAtIndex(index);
-            return element.FindPropertyRelative(Constraints.VALUE);
+            var element = _list.GetArrayElementAtIndex(index);
+            return element?.FindPropertyRelative(Constraints.VALUE_FIELD_NAME);
         }
+
+
+
+        public int IndexOfKey(SerializedProperty property)
+        {
+            dynamic targetObj = _property.GetTargetObject();
+            // propertyの値と同値のキーを検索する
+            for (int i = 0; i < _list.arraySize; i++)
+            {
+                SerializedProperty key = GetKey(i);
+                if (targetObj.Comparer.Equals((dynamic)key.GetTargetObject(), (dynamic)property.GetTargetObject()))
+                {
+                    return i;
+                }
+            }
+
+            return -1;
+        }
+
+
+
+        public bool IsUniqueKey(int index)
+        {
+            int firstIndex = IndexOfKey(GetKey(index));
+            return firstIndex >= index; // List<KeyValuePair>の中で同値のKeyがある場合、最初に出現するKeyのみをユニークキーとみなす。
+        } 
     }
 
 
 
     private class Styles
     {
+        public readonly GUIStyle DuplicatedKeyFoldoutStyle;
+
         public readonly GUIStyle DuplicatedKeyStyle;
 
         public readonly GUIContent DuplicatedKeyContent;
@@ -77,11 +140,18 @@ public class SerializableDictionaryPropertyDrawer : PropertyDrawer
         {
             DuplicatedKeyStyle = new GUIStyle(EditorStyles.boldLabel)
             {
-                normal = { textColor = Color.red }
+                normal = { textColor = Color.red },
             };
 
-            DuplicatedKeyContent = EditorGUIUtility.TrTextContent("Key (Duplicated)");
+            DuplicatedKeyFoldoutStyle = new GUIStyle(EditorStyles.foldout)
+            {
+                normal = { textColor = Color.red },
+                onNormal = { textColor = Color.red },
+                fontStyle = FontStyle.Bold,
+            };
+
             KeyContent = EditorGUIUtility.TrTextContent("Key");
+            DuplicatedKeyContent = EditorGUIUtility.TrTextContent("Key (Duplicated)");
             ValueContent = EditorGUIUtility.TrTextContent("Value");
         }
     }
@@ -100,6 +170,11 @@ public class SerializableDictionaryPropertyDrawer : PropertyDrawer
     {
         Init(property);
 
+        if (!_property.IsSerializable)
+        {
+            return 0;
+        }
+
         float height = 0f;
         // Foldout
         height += EditorGUIUtility.singleLineHeight;
@@ -114,8 +189,13 @@ public class SerializableDictionaryPropertyDrawer : PropertyDrawer
     {
         Init(property);
 
+        if (!_property.IsSerializable)
+        {
+            return;
+        }
+
         position.height = EditorGUIUtility.singleLineHeight;
-        property.isExpanded = EditorGUI.BeginFoldoutHeaderGroup(position, property.isExpanded, label);
+        property.isExpanded = EditorGUI.Foldout(position, property.isExpanded, label);
         position.y += position.height;
 
         if (property.isExpanded)
@@ -123,8 +203,6 @@ public class SerializableDictionaryPropertyDrawer : PropertyDrawer
             position.y += EditorGUIUtility.standardVerticalSpacing;     // spacing betweeen foldout and dictionary
             _list.DoList(position);
         }
-
-        EditorGUI.EndFoldoutHeaderGroup();
     }
 
 
@@ -133,7 +211,7 @@ public class SerializableDictionaryPropertyDrawer : PropertyDrawer
     {
         _styles ??= new Styles();
         _property ??= new SerializableDictionaryProperty(property);
-        _list ??= _list = new ReorderableList(_property.SerializedObject, _property.GetPairs(), true, false, true, true)
+        _list ??= _list = new ReorderableList(_property.SerializedObject, _property.List, true, false, true, true)
         {
             elementHeightCallback = CallOnElementHeight,
             drawElementCallback = CallOnDrawElement,
@@ -145,24 +223,59 @@ public class SerializableDictionaryPropertyDrawer : PropertyDrawer
     private void CallOnDrawElement(Rect rect, int index, bool isActive, bool isFocused)
     {
         var labelWidth = GetElementLabelWidth(rect);
-
         var key = _property.GetKey(index);
-        rect.height = EditorGUI.GetPropertyHeight(key);
-
+        var isUniqueKey = _property.IsUniqueKey(index);
+        var keyContent = isUniqueKey ? _styles.KeyContent : _styles.DuplicatedKeyContent;
 
         // Draw Key Property
-        EditorGUI.LabelField(new Rect(rect.x + 8f, rect.y, labelWidth, rect.height), _styles.KeyContent);
-        EditorGUI.PropertyField(new Rect(rect.x + labelWidth + 3f, rect.y, rect.width - labelWidth - 3f, rect.height), key, GUIContent.none);
-        
-        rect.y += rect.height + EditorGUIUtility.standardVerticalSpacing;
+        if (key.hasVisibleChildren)
+        {
+            key.isExpanded = EditorGUI.Foldout(new Rect(rect.x + 8f, rect.y, rect.width - 8f, EditorGUIUtility.singleLineHeight), key.isExpanded, keyContent, isUniqueKey ? EditorStyles.foldout : _styles.DuplicatedKeyFoldoutStyle);
+            rect.y += EditorGUIUtility.singleLineHeight + EditorGUIUtility.standardVerticalSpacing;
+
+            if (key.isExpanded)
+            {
+                var prop = key.Copy();
+                EditorGUI.indentLevel += 1;
+
+                while (prop.NextVisible(true) && prop.depth == key.depth + 1)
+                {
+                    var height = EditorGUI.GetPropertyHeight(prop);
+                    EditorGUI.PropertyField(new Rect(rect.x + 8f, rect.y, rect.width - 8f, height), prop, true);
+                    rect.y += height + EditorGUIUtility.standardVerticalSpacing;
+                }
+
+                prop.Dispose();
+                EditorGUI.indentLevel -= 1;
+            }
+        }
+        else
+        {
+            var height = EditorGUI.GetPropertyHeight(key);
+
+            EditorGUI.LabelField(new Rect(rect.x + 8f, rect.y, labelWidth, height), keyContent, isUniqueKey ? EditorStyles.label : _styles.DuplicatedKeyStyle);
+            EditorGUI.PropertyField(new Rect(rect.x + labelWidth + 3f, rect.y, rect.width - labelWidth - 3f, height), key, GUIContent.none);
+
+            rect.y += height + EditorGUIUtility.standardVerticalSpacing;
+        }
 
         var value = _property.GetValue(index);
-        rect.height = EditorGUI.GetPropertyHeight(value);
+        var valueHeight = EditorGUI.GetPropertyHeight(value);
 
         // Draw Value Property
-        EditorGUI.LabelField(new Rect(rect.x + 8f, rect.y, labelWidth, rect.height), _styles.ValueContent);
-        EditorGUI.PropertyField(new Rect(rect.x + labelWidth + 3f, rect.y, rect.width - labelWidth - 3f, rect.height), value, GUIContent.none);
+        if (value.hasVisibleChildren)
+        {
+            EditorGUI.PropertyField(new Rect(rect.x + 8f, rect.y, rect.width - 8f, valueHeight), value, true);
+        }
+        else
+        {
+            EditorGUI.LabelField(new Rect(rect.x + 8f, rect.y, labelWidth, valueHeight), _styles.ValueContent);
+            EditorGUI.PropertyField(new Rect(rect.x + labelWidth + 3f, rect.y, rect.width - labelWidth - 3f, valueHeight), value, GUIContent.none);
+        }
     }
+
+
+
 
 
 

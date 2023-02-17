@@ -24,24 +24,6 @@ public partial class SerializableDictionary<TKey, TValue>: ISerializationCallbac
     }
 
 
-    // Serializable TKey-equality Comparer
-    [Serializable]
-    private class KeyEqualityComparer
-    {
-        public IEqualityComparer<TKey> Comparer;
-
-        public KeyEqualityComparer(IEqualityComparer<TKey> comparer)
-        {
-            Comparer = comparer;
-        }
-
-        public bool Equals(TKey xKey, TKey yKey)
-        {
-            return Comparer.Equals(xKey, yKey);
-        }
-    }
-
-
     
     // Serialized Key/Value pair.
     // 
@@ -56,13 +38,6 @@ public partial class SerializableDictionary<TKey, TValue>: ISerializationCallbac
 
 
 
-
-    // Serialized TKey-equality comparer
-    [SerializeField]
-    private KeyEqualityComparer _comparer;
-
-
-
     private void InitSerializedProperty()
     {
         _pairs = new List<KeyValuePair>();
@@ -71,8 +46,6 @@ public partial class SerializableDictionary<TKey, TValue>: ISerializationCallbac
         {
             _pairs.Add(new KeyValuePair(pair.Key, pair.Value));
         }
-
-        _comparer = new KeyEqualityComparer(_dictionary.Comparer);
     }
 
 
